@@ -21,7 +21,7 @@ If you get stuck for 30 minutes, `fallback_split` is the original. Switch back
 to it, write down what you saw, and move on. That's a real observation about
 your pipeline, not giving up.
 """
-
+import re
 from dataclasses import dataclass
 
 import config
@@ -79,25 +79,67 @@ def fallback_split(
 
     return chunks
 
+MIN_CHARS = 200   # fold anything shorter into the previous chunk
+
+def _is_heading(line: str) -> bool:
+    line = line.strip()
+    if line.startswith("#"):
+        return True
+    return (0 < len(line) <= 60 and line[0].isupper()
+            and not line.endswith((".", "!", "?", ",", ";")))
+
+def _sections(text: str):
+    lines = text.split("\n")
+    title = lines[0].lstrip("# ").strip()
+    sections, heading, buf = [], None, []
+    for line in lines[1:]:
+        if _is_heading(line):
+            if "".join(buf).strip():
+                sections.append((heading, "\n".join(buf).strip()))
+            heading, buf = line.lstrip("# ").rstrip(":").strip(), []
+        else:
+            buf.append(line)
+    if "".join(buf).strip():
+        sections.append((heading, "\n".join(buf).strip()))
+    return title, sections
+
+def _pack_paragraphs(body: str, max_chars: int) -> list[str]:
+    parts, cur = [], ""
+    for para in (p.strip() for p in re.split(r"\n\s*\n", body)):
+        if not para:
+            continue
+        if cur and len(cur) + len(para) + 2 > max_chars:
+            parts.append(cur)
+            cur = para
+        else:
+            cur = f"{cur}\n\n{para}" if cur else para
+    if cur:
+        parts.append(cur)
+    return parts
+
 
 def split_documents(documents: list[Document]) -> list[Chunk]:
-    """
-    Split documents into chunks. ⚠️ REPLACE THE BODY OF THIS IN MILESTONE 3.
+    """Split each guide on its section headings; one section = one chunk."""
+    chunks: list[Chunk] = []
+    for doc in documents:
+        title, sections = _sections(doc.text)
+        pieces = []
+        for heading, body in sections:
+            header = f"{title} — {heading}" if heading else title
+            for part in _pack_paragraphs(body, config.CHUNK_SIZE):
+                pieces.append(f"{header}\n{part}")
 
-    Right now it just calls the fallback. That is the plain, generic behaviour
-    the brief is talking about.
+        merged: list[str] = []
+        for p in pieces:
+            if merged and len(p) < MIN_CHARS:
+                merged[-1] += "\n\n" + p
+            else:
+                merged.append(p)
 
-    When you write your own strategy, set `produced_by` to
-    "chunker.py::split_documents" so your README's Sample Chunks section names
-    the right function. `app.py chunks` prints that string for you.
-
-    Things worth thinking about before you write any code:
-      - Are your documents short posts or long guides?
-      - Is the useful information in one sentence, or spread over a paragraph?
-      - Would splitting on paragraph breaks keep more thoughts intact than
-        splitting on a character count?
-    """
-    return fallback_split(documents)
+        for i, text in enumerate(merged):
+            chunks.append(Chunk(text=text, source=doc.source, index=i,
+                                produced_by="chunker.py::split_documents"))
+    return chunks
 
 
 def describe(chunks: list[Chunk]) -> str:
