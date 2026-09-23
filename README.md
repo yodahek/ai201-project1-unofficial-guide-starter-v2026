@@ -1,8 +1,12 @@
 # The Unofficial Guide
 
-<!-- Replace this line with your name and which corpus you picked. -->
+
+
+
 
 > **This file is your submission.** Fill it in as you go — most sections get
+
+
 > written during the milestone that produces them, not at the end.
 >
 > How the starter works, and every command you'll need, is in `RUNNING.md`.
@@ -19,11 +23,11 @@
 
 # Unit 1
 
+Yodahe Kidanu city guide corpus
+
 ## What This Does
 
-<!-- Three or four sentences. Which corpus you picked, and the kinds of
-     questions your system answers. Write it for someone who has never seen
-     this repo.
+<!-- Each guide has been broken down by section and embedded as one single block in local storage using all-minilm-l6-v2. Each block is named based on the guide and section name (i.e. “brightwater – getting there”). The system will then retrieve the five nearest blocks when a user asks a question. The system will either refuse answering the question if the best score is above 0.70 or send the retrieved blocks to the model along with an additional grounding instruction. When the model returns an answer, it will identify the source file.
 
      Milestone 5. -->
 
@@ -53,39 +57,16 @@
 
      Milestone 3. -->
 
-**Chunk 1** — source: `` — produced by: ``
-
-```
-```
-
-**Chunk 2** — source: `` — produced by: ``
-
-```
-```
-
-**Chunk 3** — source: `` — produced by: ``
-
-```
-```
-
-**Chunk 4** — source: `` — produced by: ``
-
-```
-```
-
-**Chunk 5** — source: `` — produced by: ``
-
-```
-```
+====================================================================== Chunk 1  |  source: guide_accessibility.md#0  |  produced by: chunker.py::split_documents ====================================================================== Getting around the region with limited mobility An honest assessment rather than a promotional one. Some of these places are difficult and it is better to know in advance. ====================================================================== Chunk 2  |  source: guide_corry_vale.md#5  |  produced by: chunker.py::split_documents ====================================================================== Corry Vale — Where to stay Perhaps thirty beds in the entire valley, spread across two pubs and a handful of farmhouse rooms. In summer these are booked months ahead. Camping is permitted on two marked fields and nowhere else. ====================================================================== Chunk 3  |  source: guide_givens_mill.md#2  |  produced by: chunker.py::split_documents ====================================================================== Givens Mill — Getting around Everything is on one street along the river. The mill is at one end and the church at the other, eight minutes apart. The riverside path continues in both directions for as far as you want to walk. ====================================================================== Chunk 4  |  source: guide_kestrelford.md#5  |  produced by: chunker.py::split_documents ====================================================================== Kestrelford — Where to stay Two inns on the square and a handful of rooms above the pubs. Booking ahead matters between May and September and not at all otherwise. There is no accommodation of any kind within four miles of the town in either direction. ====================================================================== Chunk 5  |  source: guide_pellew_sands.md#7  |  produced by: chunker.py::split_documents ====================================================================== Pellew Sands — Practical notes Cash is still useful at the market and in smaller places, though cards are accepted almost everywhere now. Mobile coverage is good in the centre and patchy on the outskirts. The nearest full hospital is in Brightwater; there is a minor injuries unit locally with limited hours. For each one, ask: could someone answer a question using only this, without reading what came before or after?
 
 ## Sample Answer
 
 <!-- One complete question and answer, pasted as text, with the source line
      visible. Milestone 4. -->
 
-**Question:**
+**Question:* What's the recommended way to get around Kestrelford
 
-**Answer:**
+**Answer:** walking
 
 ```
 ```
@@ -103,7 +84,12 @@
 
 | Question | In corpus? | Best distance |
 |---|---|---|
-|  |  |  |
+| Getting to Brightwater | IN | 0.253 |
+| Pellew Sands best time | IN | 0.292 |
+| Getting around Kestrelford | IN | 0.375 |
+| Halden Bay ↔ Thornby Wells route | IN | 0.305 |
+| Least accessible town | IN | 0.609 |
+
 
 ## How I Used AI
 
@@ -116,9 +102,12 @@
 
      Milestone 5. -->
 
-**1.**
+Run it: python app.py ask “what’s the best time to visit Pellew Sands?”
 
-**2.**
+
+**Moment 1: the chunker.** i had Claude write me a section-based chunker for chunker.py. At that point, Claude had not been exposed to the guides; therefore, it assumed headings were short lines without punctuation at the end and that the title would be indicated by the first line. I ran python app.py chunks and python app.py retrieve to confirm the chunks were labeled appropriately (e.g., kestrelford -- getting around). Therefore, for this specific corpus, its assumptions held true. [note: anything you may have altered or added e.g., chunk_size].
+
+**Moment 2: relevance cutoff.** i pasted in my 10 retrieval scores into Claude and asked for recommendations regarding setting a cutoff. The distances ranged from 0.25-0.61 for real questions and 0.81-0.98 for off topic questions. Claude pointed out that the default of 0.60 would incorrectly reject the wheelchair-access question (0.609) since i asked specifically about “wheelchair users” but the guide states only “limited mobility.” i set the cutoff to 0.70 and also noted that close calls (travel related questions) could potentially slip by the gate.
 
 <!-- ── Stretch features ─────────────────────────────────────────────────────
      Doing one? Say so here BEFORE you start. A feature this README never
