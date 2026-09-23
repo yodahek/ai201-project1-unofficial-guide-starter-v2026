@@ -1,19 +1,59 @@
-# Acceptance criteria — The Unofficial Guide
+# Acceptance Criteria
 
-Five criteria that say what "working" means for this system, written in unit 1
-**before** any results existed.
+## 1. Retrieval finds the answer
+For at least 4 of my 5 test questions, the retrieved chunks include one
+that contains the answer.
 
-An acceptance criterion names a target: a number, a count, a rate, or something
-a person could plainly observe. *"Retrieval works"* is an opinion. *"For at
-least 4 of my 5 test questions, the top results include a chunk containing the
-answer"* is a criterion.
+**Why 4 of 5:** Each chunk is one section of one guide, so a town-specific
+question should pull back the right section. But at least one of my questions
+depends on a cross-cutting guide (transport, seasons, accessibility) whose
+topic is also mentioned briefly in individual town guides, so those can crowd
+out the right chunk. 5 of 5 would assume that overlap never matters; 3 of 5
+would accept retrieval failing on a town question, which the chunking should
+prevent.
 
-Under each one, write a sentence or two on **why that target** and not a
-stricter or looser one. A reason that says something about your corpus or your
-pipeline earns credit; *"80% seemed reasonable"* does not.
+## 2. Every answer names a source
+Every answer the system produces (i.e. every question that passes the
+relevance gate) names at least one source document by filename.
 
-> Missing your own targets next unit costs you nothing. Setting a target so
-> easy you can't miss it does.
+**Why every one:** Citing sources is a required feature and the grounding
+instruction asks for it explicitly. A missing citation is a bug, not a tuning
+tradeoff, so there's no reason to allow misses. Refusals from the gate are
+excluded because there's nothing to cite.
+
+## 3. The gate refuses off-topic questions
+When I ask a question my documents clearly don't cover, the relevance gate
+stops it and the system returns "I don't have enough information about
+that" — in at least 4 of 5 tries.
+
+**Why 4 of 5:** Some out-of-scope questions share vocabulary with travel
+guides (weather, food, prices) and may land closer than expected. Demanding
+5 of 5 would push me to set the cutoff so low that it starts refusing real
+questions, which is the worse failure for a guide people are supposed to use.
+
+## 4. Chunks are the right size and stand alone
+No chunk produced by `chunker.py::split_documents` is shorter than 200
+characters or longer than 1,500 characters, and in a random sample of 10
+chunks, at least 8 begin with their guide title and section heading and can
+answer a question without reading the chunks around them.
+
+**Why these numbers:** 200 is my merge threshold, so any shorter chunk means
+the merge step failed. 1,500 allows my 1,200-character section limit plus the
+heading prefix and a folded-in short section; anything past that means a
+section wasn't split. 8 of 10 rather than 10 of 10 because a few guide
+sections are genuinely short or list-like and may lean on context even when
+merged correctly.
+
+## 5. Answers are correct and cite the right file
+For at least 4 of my 5 test questions, the answer contains that question's
+`expects` phrase and cites the file the phrase actually appears in.
+
+**Why 4 of 5, and why both conditions:** A correct fact with the wrong
+citation can't be trusted or checked, so the two have to pass together. I
+allow one miss because the cross-cutting guides repeat details from town
+guides, and citing the other file that mentions the same fact is a
+reasonable near miss. 3 of 5 would mean the system is wrong or unverifiable
+almost half the time.
 
 ---
 
